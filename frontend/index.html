@@ -1,128 +1,126 @@
-﻿<!DOCTYPE html>
-
+﻿```html
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
 
-```
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<title>TZ Media AI Video Generator</title>
+    <title>TZ Media AI Video Generator</title>
 
-<style>
+    <style>
 
-    body {
-        font-family: Arial, sans-serif;
-        max-width: 900px;
-        margin: 40px auto;
-        padding: 20px;
-        background: #f7f7f7;
-    }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f7f7f7;
+        }
 
-    .container {
-        background: white;
-        padding: 25px;
-        border-radius: 12px;
-    }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
 
-    textarea {
-        width: 100%;
-        padding: 10px;
-        font-size: 16px;
-        box-sizing: border-box;
-        resize: vertical;
-    }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
 
-    select {
-        padding: 8px;
-        margin: 5px;
-    }
+        select {
+            padding: 8px;
+            margin: 5px;
+        }
 
-    button {
-        padding: 12px 25px;
-        font-size: 16px;
-        cursor: pointer;
-        border: none;
-        border-radius: 6px;
-    }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+        }
 
-    button:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-    }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
 
-    #generateButton {
-        background: #2196F3;
-        color: white;
-    }
+        #generateButton {
+            background: #2196F3;
+            color: white;
+        }
 
-    #progressContainer {
-        display: none;
-        margin-top: 25px;
-    }
+        #progressContainer {
+            display: none;
+            margin-top: 25px;
+        }
 
-    #progressBarBackground {
-        width: 100%;
-        height: 30px;
-        background: #ddd;
-        border-radius: 15px;
-        overflow: hidden;
-    }
+        #progressBarBackground {
+            width: 100%;
+            height: 30px;
+            background: #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+        }
 
-    #progressBar {
-        width: 0%;
-        height: 100%;
-        background: #2196F3;
-        transition: width 0.5s ease;
-    }
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background: #2196F3;
+            transition: width 0.5s ease;
+        }
 
-    #progressText {
-        margin-top: 10px;
-        font-weight: bold;
-    }
+        #progressText {
+            margin-top: 10px;
+            font-weight: bold;
+        }
 
-    #status {
-        font-size: 18px;
-        font-weight: bold;
-    }
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+        }
 
-    #videoContainer {
-        display: none;
-        margin-top: 30px;
-    }
+        #videoContainer {
+            display: none;
+            margin-top: 30px;
+        }
 
-    #generatedVideo {
-        width: 100%;
-        max-width: 640px;
-        border-radius: 8px;
-        background: #000;
-    }
+        #generatedVideo {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 8px;
+            background: #000;
+        }
 
-    #downloadButton {
-        display: inline-block;
-        margin-top: 15px;
-        padding: 12px 20px;
-        background: #4CAF50;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-    }
+        #downloadButton {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
 
-    #result {
-        background: #f4f4f4;
-        padding: 15px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        margin-top: 20px;
-    }
+        #result {
+            background: #f4f4f4;
+            padding: 15px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
 
-</style>
-```
+    </style>
 
 </head>
 
@@ -130,176 +128,161 @@
 
 <div class="container">
 
-```
-<h1>TZ Media AI Video Generator</h1>
+    <h1>TZ Media AI Video Generator</h1>
 
-<p>
-    Create realistic AI videos from text prompts using Wan2.1.
-</p>
+    <p>
+        Create realistic AI videos from text prompts using Wan2.1.
+    </p>
 
+    <label for="prompt">
+        Video Prompt
+    </label>
 
-<label for="prompt">
-    Video Prompt
-</label>
+    <br><br>
 
-<br><br>
+    <textarea
+        id="prompt"
+        rows="8"
+        placeholder="Describe the video you want to create..."
+    ></textarea>
 
-<textarea
-    id="prompt"
-    rows="8"
-    placeholder="Describe the video you want to create..."
-></textarea>
+    <br><br>
 
+    <label for="videoType">
+        Video Type
+    </label>
 
-<br><br>
+    <select id="videoType">
 
+        <option value="short">
+            Short Video
+        </option>
 
-<label for="videoType">
-    Video Type
-</label>
+        <option value="long">
+            Long Video
+        </option>
 
-<select id="videoType">
+    </select>
 
-    <option value="short">
-        Short Video
-    </option>
+    <label for="duration">
+        Duration
+    </label>
 
-    <option value="long">
-        Long Video
-    </option>
+    <select id="duration">
 
-</select>
+        <option value="5">
+            5 seconds
+        </option>
 
+        <option value="10">
+            10 seconds
+        </option>
 
-<label for="duration">
-    Duration
-</label>
+        <option value="30">
+            30 seconds
+        </option>
 
-<select id="duration">
+        <option value="60">
+            1 minute
+        </option>
 
-    <option value="5">
-        5 seconds
-    </option>
+        <option value="300">
+            5 minutes
+        </option>
 
-    <option value="10">
-        10 seconds
-    </option>
+    </select>
 
-    <option value="30">
-        30 seconds
-    </option>
+    <br><br>
 
-    <option value="60">
-        1 minute
-    </option>
+    <label for="voiceLanguage">
+        Voice Language
+    </label>
 
-    <option value="300">
-        5 minutes
-    </option>
+    <select id="voiceLanguage">
 
-</select>
+        <option value="english">
+            English
+        </option>
 
+        <option value="amharic">
+            Amharic
+        </option>
 
-<br><br>
+        <option value="sidamic">
+            Sidamic
+        </option>
 
+    </select>
 
-<label for="voiceLanguage">
-    Voice Language
-</label>
+    <label for="clipLength">
+        AI Clip Length
+    </label>
 
-<select id="voiceLanguage">
+    <select id="clipLength">
 
-    <option value="english">
-        English
-    </option>
+        <option value="1">
+            1 second
+        </option>
 
-    <option value="amharic">
-        Amharic
-    </option>
+        <option value="2">
+            2 seconds
+        </option>
 
-    <option value="sidamic">
-        Sidamic
-    </option>
+        <option value="5">
+            5 seconds
+        </option>
 
-</select>
+        <option value="8">
+            8 seconds
+        </option>
 
+    </select>
 
-<label for="clipLength">
-    AI Clip Length
-</label>
+    <br><br>
 
-<select id="clipLength">
+    <button id="generateButton">
+        Generate Video
+    </button>
 
-    <option value="1">
-        1 second
-    </option>
+    <p id="status"></p>
 
-    <option value="2">
-        2 seconds
-    </option>
+    <div id="progressContainer">
 
-    <option value="5">
-        5 seconds
-    </option>
+        <div id="progressBarBackground">
 
-    <option value="8">
-        8 seconds
-    </option>
+            <div id="progressBar"></div>
 
-</select>
+        </div>
 
-
-<br><br>
-
-
-<button id="generateButton">
-    Generate Video
-</button>
-
-
-<p id="status"></p>
-
-
-<div id="progressContainer">
-
-    <div id="progressBarBackground">
-
-        <div id="progressBar"></div>
+        <p id="progressText">
+            0%
+        </p>
 
     </div>
 
-    <p id="progressText">
-        0%
-    </p>
+    <div id="videoContainer">
 
-</div>
+        <h2>Generated Video</h2>
 
+        <video
+            id="generatedVideo"
+            controls
+            playsinline
+        ></video>
 
-<div id="videoContainer">
+        <br>
 
-    <h2>Generated Video</h2>
+        <a
+            id="downloadButton"
+            href="#"
+            download
+        >
+            Download Video
+        </a>
 
-    <video
-        id="generatedVideo"
-        controls
-        playsinline
-    ></video>
+    </div>
 
-    <br>
-
-    <a
-        id="downloadButton"
-        href="#"
-        download
-    >
-        Download Video
-    </a>
-
-</div>
-
-
-<pre id="result"></pre>
-```
+    <pre id="result"></pre>
 
 </div>
 
@@ -310,16 +293,16 @@
      * PUBLIC KAGGLE WAN2.1 API
      * ==========================================
      *
-     * This URL connects the website to the
-     * Flask API running inside Kaggle.
+     * This is the current Cloudflare URL
+     * connected to the Kaggle Wan2.1 server.
      *
      * IMPORTANT:
-     * Keep the Kaggle session and Cloudflare
-     * Tunnel running while testing.
+     * Keep the Kaggle Flask server and
+     * Cloudflare tunnel running while testing.
      */
 
     const API_URL =
-        "https://telescope-adaptive-mario-mai.trycloudflare.com";
+        "https://kids-referred-sleeve-royalty.trycloudflare.com";
 
 
     const button =
@@ -327,40 +310,48 @@
             "generateButton"
         );
 
+
     const status =
         document.getElementById(
             "status"
         );
+
 
     const result =
         document.getElementById(
             "result"
         );
 
+
     const progressContainer =
         document.getElementById(
             "progressContainer"
         );
+
 
     const progressBar =
         document.getElementById(
             "progressBar"
         );
 
+
     const progressText =
         document.getElementById(
             "progressText"
         );
+
 
     const videoContainer =
         document.getElementById(
             "videoContainer"
         );
 
+
     const generatedVideo =
         document.getElementById(
             "generatedVideo"
         );
+
 
     const downloadButton =
         document.getElementById(
@@ -422,7 +413,7 @@
 
 
             /*
-             * Disable button while generating
+             * Disable button
              */
 
             button.disabled = true;
@@ -480,7 +471,7 @@
 
 
                 /*
-                 * Send request to Kaggle API
+                 * Send request
                  */
 
                 const response =
@@ -492,8 +483,10 @@
                             method: "POST",
 
                             headers: {
+
                                 "Content-Type":
                                     "application/json"
+
                             },
 
                             body: JSON.stringify({
@@ -539,7 +532,7 @@
 
 
                 /*
-                 * Read API response
+                 * Read response
                  */
 
                 const data =
@@ -561,7 +554,7 @@
 
 
                 /*
-                 * Check generation status
+                 * Check status
                  */
 
                 if (
@@ -590,7 +583,7 @@
 
 
                 /*
-                 * Step 3 - Complete
+                 * Complete
                  */
 
                 progressBar.style.width =
@@ -606,7 +599,7 @@
 
 
                 /*
-                 * Display API response
+                 * Display response
                  */
 
                 result.textContent =
@@ -627,7 +620,7 @@
 
 
                 /*
-                 * Put video into player
+                 * Display video
                  */
 
                 generatedVideo.src =
@@ -638,7 +631,7 @@
 
 
                 /*
-                 * Set download link
+                 * Download link
                  */
 
                 downloadButton.href =
@@ -646,14 +639,14 @@
 
 
                 /*
-                 * Show video section
+                 * Show video
                  */
 
                 videoContainer.style.display =
                     "block";
 
-
             }
+
             catch (error) {
 
                 console.error(
@@ -661,10 +654,6 @@
                     error
                 );
 
-
-                /*
-                 * Show error
-                 */
 
                 status.textContent =
                     "❌ Error: " +
@@ -684,11 +673,8 @@
                     "0%";
 
             }
-            finally {
 
-                /*
-                 * Enable button again
-                 */
+            finally {
 
                 button.disabled =
                     false;
@@ -703,3 +689,4 @@
 </body>
 
 </html>
+```

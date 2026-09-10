@@ -1,0 +1,705 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+```
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>TZ Media AI Video Generator</title>
+
+<style>
+
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+        background: #f7f7f7;
+    }
+
+    .container {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+    }
+
+    textarea {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        box-sizing: border-box;
+        resize: vertical;
+    }
+
+    select {
+        padding: 8px;
+        margin: 5px;
+    }
+
+    button {
+        padding: 12px 25px;
+        font-size: 16px;
+        cursor: pointer;
+        border: none;
+        border-radius: 6px;
+    }
+
+    button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    #generateButton {
+        background: #2196F3;
+        color: white;
+    }
+
+    #progressContainer {
+        display: none;
+        margin-top: 25px;
+    }
+
+    #progressBarBackground {
+        width: 100%;
+        height: 30px;
+        background: #ddd;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    #progressBar {
+        width: 0%;
+        height: 100%;
+        background: #2196F3;
+        transition: width 0.5s ease;
+    }
+
+    #progressText {
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    #status {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    #videoContainer {
+        display: none;
+        margin-top: 30px;
+    }
+
+    #generatedVideo {
+        width: 100%;
+        max-width: 640px;
+        border-radius: 8px;
+        background: #000;
+    }
+
+    #downloadButton {
+        display: inline-block;
+        margin-top: 15px;
+        padding: 12px 20px;
+        background: #4CAF50;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    }
+
+    #result {
+        background: #f4f4f4;
+        padding: 15px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        margin-top: 20px;
+    }
+
+</style>
+```
+
+</head>
+
+<body>
+
+<div class="container">
+
+```
+<h1>TZ Media AI Video Generator</h1>
+
+<p>
+    Create realistic AI videos from text prompts using Wan2.1.
+</p>
+
+
+<label for="prompt">
+    Video Prompt
+</label>
+
+<br><br>
+
+<textarea
+    id="prompt"
+    rows="8"
+    placeholder="Describe the video you want to create..."
+></textarea>
+
+
+<br><br>
+
+
+<label for="videoType">
+    Video Type
+</label>
+
+<select id="videoType">
+
+    <option value="short">
+        Short Video
+    </option>
+
+    <option value="long">
+        Long Video
+    </option>
+
+</select>
+
+
+<label for="duration">
+    Duration
+</label>
+
+<select id="duration">
+
+    <option value="5">
+        5 seconds
+    </option>
+
+    <option value="10">
+        10 seconds
+    </option>
+
+    <option value="30">
+        30 seconds
+    </option>
+
+    <option value="60">
+        1 minute
+    </option>
+
+    <option value="300">
+        5 minutes
+    </option>
+
+</select>
+
+
+<br><br>
+
+
+<label for="voiceLanguage">
+    Voice Language
+</label>
+
+<select id="voiceLanguage">
+
+    <option value="english">
+        English
+    </option>
+
+    <option value="amharic">
+        Amharic
+    </option>
+
+    <option value="sidamic">
+        Sidamic
+    </option>
+
+</select>
+
+
+<label for="clipLength">
+    AI Clip Length
+</label>
+
+<select id="clipLength">
+
+    <option value="1">
+        1 second
+    </option>
+
+    <option value="2">
+        2 seconds
+    </option>
+
+    <option value="5">
+        5 seconds
+    </option>
+
+    <option value="8">
+        8 seconds
+    </option>
+
+</select>
+
+
+<br><br>
+
+
+<button id="generateButton">
+    Generate Video
+</button>
+
+
+<p id="status"></p>
+
+
+<div id="progressContainer">
+
+    <div id="progressBarBackground">
+
+        <div id="progressBar"></div>
+
+    </div>
+
+    <p id="progressText">
+        0%
+    </p>
+
+</div>
+
+
+<div id="videoContainer">
+
+    <h2>Generated Video</h2>
+
+    <video
+        id="generatedVideo"
+        controls
+        playsinline
+    ></video>
+
+    <br>
+
+    <a
+        id="downloadButton"
+        href="#"
+        download
+    >
+        Download Video
+    </a>
+
+</div>
+
+
+<pre id="result"></pre>
+```
+
+</div>
+
+<script>
+
+    /*
+     * ==========================================
+     * PUBLIC KAGGLE WAN2.1 API
+     * ==========================================
+     *
+     * This URL connects the website to the
+     * Flask API running inside Kaggle.
+     *
+     * IMPORTANT:
+     * Keep the Kaggle session and Cloudflare
+     * Tunnel running while testing.
+     */
+
+    const API_URL =
+        "https://telescope-adaptive-mario-mai.trycloudflare.com";
+
+
+    const button =
+        document.getElementById(
+            "generateButton"
+        );
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+    const result =
+        document.getElementById(
+            "result"
+        );
+
+    const progressContainer =
+        document.getElementById(
+            "progressContainer"
+        );
+
+    const progressBar =
+        document.getElementById(
+            "progressBar"
+        );
+
+    const progressText =
+        document.getElementById(
+            "progressText"
+        );
+
+    const videoContainer =
+        document.getElementById(
+            "videoContainer"
+        );
+
+    const generatedVideo =
+        document.getElementById(
+            "generatedVideo"
+        );
+
+    const downloadButton =
+        document.getElementById(
+            "downloadButton"
+        );
+
+
+    button.addEventListener(
+        "click",
+        async function () {
+
+            const prompt =
+                document
+                    .getElementById("prompt")
+                    .value
+                    .trim();
+
+
+            const videoType =
+                document
+                    .getElementById("videoType")
+                    .value;
+
+
+            const duration =
+                Number(
+                    document
+                        .getElementById("duration")
+                        .value
+                );
+
+
+            const voiceLanguage =
+                document
+                    .getElementById("voiceLanguage")
+                    .value;
+
+
+            const clipLength =
+                Number(
+                    document
+                        .getElementById("clipLength")
+                        .value
+                );
+
+
+            /*
+             * Check prompt
+             */
+
+            if (!prompt) {
+
+                status.textContent =
+                    "Please enter a video prompt.";
+
+                return;
+
+            }
+
+
+            /*
+             * Disable button while generating
+             */
+
+            button.disabled = true;
+
+
+            /*
+             * Show progress
+             */
+
+            progressContainer.style.display =
+                "block";
+
+
+            progressBar.style.width =
+                "10%";
+
+
+            progressText.textContent =
+                "10%";
+
+
+            status.textContent =
+                "Connecting to Wan2.1...";
+
+
+            result.textContent =
+                "";
+
+
+            videoContainer.style.display =
+                "none";
+
+
+            generatedVideo.removeAttribute(
+                "src"
+            );
+
+
+            try {
+
+                /*
+                 * Step 1
+                 */
+
+                progressBar.style.width =
+                    "20%";
+
+
+                progressText.textContent =
+                    "20%";
+
+
+                status.textContent =
+                    "Sending generation request...";
+
+
+                /*
+                 * Send request to Kaggle API
+                 */
+
+                const response =
+                    await fetch(
+                        API_URL +
+                        "/api/generate",
+                        {
+
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                prompt:
+                                    prompt,
+
+                                videoType:
+                                    videoType,
+
+                                duration:
+                                    duration,
+
+                                language:
+                                    voiceLanguage,
+
+                                voiceLanguage:
+                                    voiceLanguage,
+
+                                clipLength:
+                                    clipLength
+
+                            })
+
+                        }
+                    );
+
+
+                /*
+                 * Step 2
+                 */
+
+                progressBar.style.width =
+                    "70%";
+
+
+                progressText.textContent =
+                    "70%";
+
+
+                status.textContent =
+                    "Wan2.1 is generating your video...";
+
+
+                /*
+                 * Read API response
+                 */
+
+                const data =
+                    await response.json();
+
+
+                /*
+                 * Check API error
+                 */
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.error ||
+                        "Video generation failed."
+                    );
+
+                }
+
+
+                /*
+                 * Check generation status
+                 */
+
+                if (
+                    data.status !==
+                    "completed"
+                ) {
+
+                    throw new Error(
+                        "Video generation did not complete."
+                    );
+
+                }
+
+
+                /*
+                 * Check video URL
+                 */
+
+                if (!data.video_url) {
+
+                    throw new Error(
+                        "The API did not return a video URL."
+                    );
+
+                }
+
+
+                /*
+                 * Step 3 - Complete
+                 */
+
+                progressBar.style.width =
+                    "100%";
+
+
+                progressText.textContent =
+                    "100%";
+
+
+                status.textContent =
+                    "✅ Video generated successfully!";
+
+
+                /*
+                 * Display API response
+                 */
+
+                result.textContent =
+                    JSON.stringify(
+                        data,
+                        null,
+                        2
+                    );
+
+
+                /*
+                 * Build public video URL
+                 */
+
+                const videoURL =
+                    API_URL +
+                    data.video_url;
+
+
+                /*
+                 * Put video into player
+                 */
+
+                generatedVideo.src =
+                    videoURL;
+
+
+                generatedVideo.load();
+
+
+                /*
+                 * Set download link
+                 */
+
+                downloadButton.href =
+                    videoURL;
+
+
+                /*
+                 * Show video section
+                 */
+
+                videoContainer.style.display =
+                    "block";
+
+
+            }
+            catch (error) {
+
+                console.error(
+                    "Generation error:",
+                    error
+                );
+
+
+                /*
+                 * Show error
+                 */
+
+                status.textContent =
+                    "❌ Error: " +
+                    error.message;
+
+
+                result.textContent =
+                    "Error:\n" +
+                    error.message;
+
+
+                progressBar.style.width =
+                    "0%";
+
+
+                progressText.textContent =
+                    "0%";
+
+            }
+            finally {
+
+                /*
+                 * Enable button again
+                 */
+
+                button.disabled =
+                    false;
+
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+
+</html>

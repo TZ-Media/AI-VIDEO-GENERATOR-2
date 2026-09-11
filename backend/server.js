@@ -7,6 +7,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+
 // ============================================================
 // WAN2.1 KAGGLE WORKER
 // ============================================================
@@ -47,7 +48,7 @@ app.use(
 // HEALTH CHECK
 // ============================================================
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", function (req, res) {
 
     res.json({
 
@@ -68,17 +69,15 @@ app.get("/api/health", (req, res) => {
 // WAN2.1 WORKER HEALTH CHECK
 // ============================================================
 
-app.get("/api/worker-health", async (req, res) => {
+app.get("/api/worker-health", async function (req, res) {
 
     try {
 
-        const response =
-            await fetch(
-                `${WORKER_URL}/health`
-            );
+        const response = await fetch(
+            WORKER_URL + "/health"
+        );
 
-        const data =
-            await response.json();
+        const data = await response.json();
 
 
         if (!response.ok) {
@@ -136,21 +135,22 @@ app.get("/api/worker-health", async (req, res) => {
 // CREATE VIDEO
 // ============================================================
 
-app.post("/api/generate", async (req, res) => {
+app.post("/api/generate", async function (req, res) {
 
-    const {
+    const prompt =
+        req.body.prompt;
 
-        prompt,
+    const videoType =
+        req.body.videoType;
 
-        videoType,
+    const duration =
+        req.body.duration;
 
-        duration,
+    const voiceLanguage =
+        req.body.voiceLanguage;
 
-        voiceLanguage,
-
-        clipLength
-
-    } = req.body;
+    const clipLength =
+        req.body.clipLength;
 
 
     // --------------------------------------------------------
@@ -274,31 +274,30 @@ app.post("/api/generate", async (req, res) => {
             20;
 
 
-        const workerResponse =
-            await fetch(
-                `${WORKER_URL}/generate`,
-                {
+        const workerResponse = await fetch(
+            WORKER_URL + "/generate",
+            {
 
-                    method:
-                        "POST",
+                method:
+                    "POST",
 
-                    headers: {
+                headers: {
 
-                        "Content-Type":
-                            "application/json"
+                    "Content-Type":
+                        "application/json"
 
-                    },
+                },
 
-                    body:
-                        JSON.stringify({
+                body:
+                    JSON.stringify({
 
-                            prompt:
-                                project.prompt
+                        prompt:
+                            project.prompt
 
-                        })
+                    })
 
-                }
-            );
+            }
+        );
 
 
         // ----------------------------------------------------
@@ -372,11 +371,15 @@ app.post("/api/generate", async (req, res) => {
             project.filename =
                 workerData.filename;
 
+
             project.workerVideoUrl =
-                `${WORKER_URL}${workerData.video_url}`;
+                WORKER_URL +
+                workerData.video_url;
+
 
             project.videoUrl =
                 project.workerVideoUrl;
+
 
             project.updatedAt =
                 new Date().toISOString();
@@ -506,7 +509,7 @@ app.post("/api/generate", async (req, res) => {
 
 app.get(
     "/api/projects",
-    (req, res) => {
+    function (req, res) {
 
         res.json({
 
@@ -530,7 +533,7 @@ app.get(
 
 app.get(
     "/api/projects/:id",
-    (req, res) => {
+    function (req, res) {
 
         const projectId =
             req.params.id;
@@ -582,21 +585,20 @@ app.get(
 
 app.post(
     "/api/projects/:id/status",
-    (req, res) => {
+    function (req, res) {
 
         const projectId =
             req.params.id;
 
 
-        const {
+        const status =
+            req.body.status;
 
-            status,
+        const progress =
+            req.body.progress;
 
-            progress,
-
-            message
-
-        } = req.body;
+        const message =
+            req.body.message;
 
 
         const project =
@@ -675,7 +677,7 @@ app.post(
 
 app.listen(
     PORT,
-    () => {
+    function () {
 
         console.log("");
         console.log(
@@ -691,11 +693,13 @@ app.listen(
         );
 
         console.log(
-            `Server running on port ${PORT}`
+            "Server running on port " +
+            PORT
         );
 
         console.log(
-            `Wan2.1 Worker: ${WORKER_URL}`
+            "Wan2.1 Worker: " +
+            WORKER_URL
         );
 
         console.log(

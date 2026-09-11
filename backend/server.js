@@ -6,10 +6,6 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// ============================================================
-// KAGGLE WAN2.1 WORKER
-// ============================================================
-
 const WORKER_URL = process.env.WORKER_URL;
 
 if (WORKER_URL) {
@@ -18,23 +14,11 @@ console.log("Kaggle worker URL configured.");
 console.warn("WARNING: WORKER_URL is not configured.");
 }
 
-// ============================================================
-// PROJECT STORAGE
-// ============================================================
-
 const projects = [];
-
-// ============================================================
-// MIDDLEWARE
-// ============================================================
 
 app.use(cors());
 
 app.use(express.json());
-
-// ============================================================
-// FRONTEND
-// ============================================================
 
 app.use(
 express.static(
@@ -46,7 +30,7 @@ path.join(__dirname, "..", "frontend")
 // HEALTH CHECK
 // ============================================================
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", function(req, res) {
 
 ```
 res.json({
@@ -59,10 +43,10 @@ res.json({
 });
 
 // ============================================================
-// KAGGLE WORKER HEALTH CHECK
+// KAGGLE WORKER HEALTH
 // ============================================================
 
-app.get("/api/worker-health", async (req, res) => {
+app.get("/api/worker-health", async function(req, res) {
 
 ```
 if (!WORKER_URL) {
@@ -77,7 +61,7 @@ if (!WORKER_URL) {
 try {
 
     const response = await fetch(
-        `${WORKER_URL}/health`
+        WORKER_URL + "/health"
     );
 
     const data = await response.json();
@@ -119,16 +103,15 @@ try {
 // CREATE VIDEO GENERATION JOB
 // ============================================================
 
-app.post("/api/generate", async (req, res) => {
+app.post("/api/generate", async function(req, res) {
 
 ```
-const {
-    prompt,
-    videoType,
-    duration,
-    voiceLanguage,
-    clipLength
-} = req.body;
+const prompt = req.body.prompt;
+const videoType = req.body.videoType;
+const duration = req.body.duration;
+const voiceLanguage = req.body.voiceLanguage;
+const clipLength = req.body.clipLength;
+
 
 // --------------------------------------------------------
 // CHECK PROMPT
@@ -143,6 +126,7 @@ if (!prompt || !prompt.trim()) {
 
 }
 
+
 // --------------------------------------------------------
 // CHECK WORKER
 // --------------------------------------------------------
@@ -155,6 +139,7 @@ if (!WORKER_URL) {
     });
 
 }
+
 
 // --------------------------------------------------------
 // CREATE PROJECT
@@ -184,7 +169,9 @@ const project = {
 
 };
 
+
 projects.push(project);
+
 
 console.log("");
 console.log("================================");
@@ -199,6 +186,7 @@ console.log("Clip length:", project.clipLength);
 console.log("================================");
 console.log("");
 
+
 // --------------------------------------------------------
 // SEND JOB TO KAGGLE
 // --------------------------------------------------------
@@ -206,7 +194,7 @@ console.log("");
 try {
 
     const workerResponse = await fetch(
-        `${WORKER_URL}/generate`,
+        WORKER_URL + "/generate",
         {
             method: "POST",
 
@@ -220,13 +208,16 @@ try {
         }
     );
 
+
     const workerData =
         await workerResponse.json();
+
 
     console.log(
         "Kaggle response:",
         workerData
     );
+
 
     // ----------------------------------------------------
     // WORKER ERROR
@@ -246,6 +237,7 @@ try {
         project.updatedAt =
             new Date().toISOString();
 
+
         return res.status(502).json({
 
             success: false,
@@ -257,6 +249,7 @@ try {
         });
 
     }
+
 
     // ----------------------------------------------------
     // JOB ACCEPTED
@@ -273,16 +266,21 @@ try {
         project.progress = 10;
 
         project.message =
-            "Kaggle Wan2.1 is generating the video...";
+            "Kaggle Wan2.1 is generating the video.";
 
         project.statusUrl =
-            `${WORKER_URL}/status/${workerData.job_id}`;
+            WORKER_URL +
+            "/status/" +
+            workerData.job_id;
 
         project.workerVideoUrl =
-            `${WORKER_URL}/video/${workerData.job_id}`;
+            WORKER_URL +
+            "/video/" +
+            workerData.job_id;
 
         project.updatedAt =
             new Date().toISOString();
+
 
         return res.status(202).json({
 
@@ -297,8 +295,9 @@ try {
 
     }
 
+
     // ----------------------------------------------------
-    // UNEXPECTED WORKER RESPONSE
+    // UNEXPECTED RESPONSE
     // ----------------------------------------------------
 
     project.status = "failed";
@@ -310,6 +309,7 @@ try {
 
     project.updatedAt =
         new Date().toISOString();
+
 
     return res.status(502).json({
 
@@ -323,12 +323,14 @@ try {
 
     });
 
+
 } catch (error) {
 
     console.error(
         "Kaggle connection error:",
         error.message
     );
+
 
     project.status = "failed";
 
@@ -339,6 +341,7 @@ try {
 
     project.updatedAt =
         new Date().toISOString();
+
 
     return res.status(503).json({
 
@@ -363,16 +366,20 @@ try {
 
 app.get(
 "/api/projects/:id/status",
-async (req, res) => {
+async function(req, res) {
 
 ```
     const projectId =
         req.params.id;
 
+
     const project =
-        projects.find(
-            item => item.id === projectId
-        );
+        projects.find(function(item) {
+
+            return item.id === projectId;
+
+        });
+
 
     if (!project) {
 
@@ -385,6 +392,7 @@ async (req, res) => {
         });
 
     }
+
 
     // ----------------------------------------------------
     // NO WORKER JOB YET
@@ -402,6 +410,7 @@ async (req, res) => {
 
     }
 
+
     // ----------------------------------------------------
     // CHECK KAGGLE
     // ----------------------------------------------------
@@ -410,11 +419,15 @@ async (req, res) => {
 
         const response =
             await fetch(
-                `${WORKER_URL}/status/${project.workerJobId}`
+                WORKER_URL +
+                "/status/" +
+                project.workerJobId
             );
+
 
         const data =
             await response.json();
+
 
         if (!response.ok) {
 
@@ -428,6 +441,7 @@ async (req, res) => {
             project.updatedAt =
                 new Date().toISOString();
 
+
             return res.status(502).json({
 
                 success: false,
@@ -440,6 +454,7 @@ async (req, res) => {
 
         }
 
+
         // ------------------------------------------------
         // UPDATE STATUS
         // ------------------------------------------------
@@ -451,6 +466,7 @@ async (req, res) => {
 
         }
 
+
         // ------------------------------------------------
         // GENERATING
         // ------------------------------------------------
@@ -459,15 +475,17 @@ async (req, res) => {
             data.status === "generating"
         ) {
 
-            project.progress =
-                project.progress < 20
-                    ? 20
-                    : project.progress;
+            if (project.progress < 20) {
+
+                project.progress = 20;
+
+            }
 
             project.message =
-                "Wan2.1 is generating the video...";
+                "Wan2.1 is generating the video.";
 
         }
+
 
         // ------------------------------------------------
         // COMPLETED
@@ -487,7 +505,9 @@ async (req, res) => {
                 "Video generated successfully.";
 
             project.videoUrl =
-                `${WORKER_URL}/video/${project.workerJobId}`;
+                WORKER_URL +
+                "/video/" +
+                project.workerJobId;
 
             project.workerVideoUrl =
                 project.videoUrl;
@@ -496,6 +516,7 @@ async (req, res) => {
                 new Date().toISOString();
 
         }
+
 
         // ------------------------------------------------
         // FAILED
@@ -521,6 +542,7 @@ async (req, res) => {
 
         }
 
+
         return res.json({
 
             success: true,
@@ -531,12 +553,14 @@ async (req, res) => {
 
         });
 
+
     } catch (error) {
 
         console.error(
             "Status check error:",
             error.message
         );
+
 
         return res.status(503).json({
 
@@ -566,7 +590,7 @@ async (req, res) => {
 
 app.get(
 "/api/projects",
-(req, res) => {
+function(req, res) {
 
 ```
     res.json({
@@ -592,16 +616,20 @@ app.get(
 
 app.get(
 "/api/projects/:id",
-(req, res) => {
+function(req, res) {
 
 ```
     const projectId =
         req.params.id;
 
+
     const project =
-        projects.find(
-            item => item.id === projectId
-        );
+        projects.find(function(item) {
+
+            return item.id === projectId;
+
+        });
+
 
     if (!project) {
 
@@ -615,6 +643,7 @@ app.get(
         });
 
     }
+
 
     res.json({
 
@@ -634,20 +663,24 @@ app.get(
 // ROOT
 // ============================================================
 
-app.get("/", (req, res) => {
+app.get(
+"/",
+function(req, res) {
 
 ```
-res.sendFile(
-    path.join(
-        __dirname,
-        "..",
-        "frontend",
-        "index.html"
-    )
+    res.sendFile(
+        path.join(
+            __dirname,
+            "..",
+            "frontend",
+            "index.html"
+        )
+    );
+
+}
+```
+
 );
-```
-
-});
 
 // ============================================================
 // START SERVER
@@ -655,7 +688,7 @@ res.sendFile(
 
 app.listen(
 PORT,
-() => {
+function() {
 
 ```
     console.log("");
@@ -664,7 +697,7 @@ PORT,
     console.log("================================");
 
     console.log(
-        `Server running on port ${PORT}`
+        "Server running on port " + PORT
     );
 
     console.log(

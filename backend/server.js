@@ -21,45 +21,29 @@ path.join(__dirname, "..", "frontend")
 )
 );
 
-/* =========================
-API HEALTH
-========================= */
-
 app.get("/api/health", function (req, res) {
-
-```
 res.json({
-    success: true,
-    message: "AI Video Generator API is running!",
-    worker: WORKER_URL
+success: true,
+message: "AI Video Generator API is running!",
+worker: WORKER_URL
 });
-```
-
 });
-
-/* =========================
-WORKER HEALTH
-========================= */
 
 app.get("/api/worker-health", async function (req, res) {
+try {
+const response = await fetch(
+WORKER_URL + "/health"
+);
 
 ```
-try {
-
-    const response = await fetch(
-        WORKER_URL + "/health"
-    );
-
     const data = await response.json();
 
     if (!response.ok) {
-
         return res.status(503).json({
             success: false,
             message: "Wan2.1 worker returned an error.",
             worker: data
         });
-
     }
 
     res.json({
@@ -68,7 +52,6 @@ try {
     });
 
 } catch (error) {
-
     console.error(
         "Worker health error:",
         error.message
@@ -79,60 +62,37 @@ try {
         message: "Wan2.1 worker is not reachable.",
         error: error.message
     });
-
 }
 ```
 
 });
 
-/* =========================
-GENERATE VIDEO
-========================= */
-
 app.post("/api/generate", async function (req, res) {
-
-```
 const prompt = req.body.prompt;
 const videoType = req.body.videoType;
 const duration = req.body.duration;
 const voiceLanguage = req.body.voiceLanguage;
 const clipLength = req.body.clipLength;
 
+```
 if (!prompt || !prompt.trim()) {
-
     return res.status(400).json({
         success: false,
         message: "Video prompt is required."
     });
-
 }
 
 const project = {
-
     id: "video_" + Date.now(),
-
     prompt: prompt.trim(),
-
     videoType: videoType || "short",
-
     duration: duration || 5,
-
-    voiceLanguage:
-        voiceLanguage || "english",
-
-    clipLength:
-        clipLength || 5,
-
+    voiceLanguage: voiceLanguage || "english",
+    clipLength: clipLength || 5,
     status: "generating",
-
     progress: 10,
-
-    message:
-        "Sending prompt to Wan2.1...",
-
-    createdAt:
-        new Date().toISOString()
-
+    message: "Sending prompt to Wan2.1...",
+    createdAt: new Date().toISOString()
 };
 
 projects.push(project);
@@ -141,69 +101,34 @@ console.log("");
 console.log("================================");
 console.log("NEW VIDEO GENERATION REQUEST");
 console.log("================================");
-
-console.log(
-    "Project ID:",
-    project.id
-);
-
-console.log(
-    "Prompt:",
-    project.prompt
-);
-
-console.log(
-    "Video type:",
-    project.videoType
-);
-
-console.log(
-    "Duration:",
-    project.duration
-);
-
-console.log(
-    "Voice:",
-    project.voiceLanguage
-);
-
-console.log(
-    "Clip length:",
-    project.clipLength
-);
-
-console.log(
-    "Worker:",
-    WORKER_URL
-);
-
+console.log("Project ID:", project.id);
+console.log("Prompt:", project.prompt);
+console.log("Video type:", project.videoType);
+console.log("Duration:", project.duration);
+console.log("Voice:", project.voiceLanguage);
+console.log("Clip length:", project.clipLength);
+console.log("Worker:", WORKER_URL);
 console.log("================================");
 console.log("");
 
 try {
-
     project.message =
         "Wan2.1 is generating the video...";
 
     project.progress = 20;
 
-    const workerResponse =
-        await fetch(
-            WORKER_URL + "/generate",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-
-                body: JSON.stringify({
-                    prompt:
-                        project.prompt
-                })
-            }
-        );
+    const workerResponse = await fetch(
+        WORKER_URL + "/generate",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                prompt: project.prompt
+            })
+        }
+    );
 
     const workerData =
         await workerResponse.json();
@@ -214,9 +139,7 @@ try {
     );
 
     if (!workerResponse.ok) {
-
         project.status = "failed";
-
         project.progress = 0;
 
         project.message =
@@ -228,26 +151,14 @@ try {
             new Date().toISOString();
 
         return res.status(500).json({
-
             success: false,
-
             project: project,
-
-            message:
-                project.message
-
+            message: project.message
         });
-
     }
 
-    if (
-        workerData.status ===
-        "completed"
-    ) {
-
-        project.status =
-            "completed";
-
+    if (workerData.status === "completed") {
+        project.status = "completed";
         project.progress = 100;
 
         project.message =
@@ -270,41 +181,29 @@ try {
         console.log(
             "VIDEO GENERATION COMPLETED"
         );
-
         console.log(
             "Project:",
             project.id
         );
-
         console.log(
             "Video:",
             project.videoUrl
         );
-
         console.log("");
 
         return res.json({
-
             success: true,
-
             project: project,
-
             video: {
-
                 filename:
                     workerData.filename,
-
                 url:
                     project.videoUrl
-
             }
-
         });
-
     }
 
     project.status = "failed";
-
     project.progress = 0;
 
     project.message =
@@ -314,27 +213,19 @@ try {
         new Date().toISOString();
 
     return res.status(500).json({
-
         success: false,
-
         project: project,
-
         worker: workerData,
-
-        message:
-            project.message
-
+        message: project.message
     });
 
 } catch (error) {
-
     console.error(
         "Wan2.1 connection error:",
         error.message
     );
 
     project.status = "failed";
-
     project.progress = 0;
 
     project.message =
@@ -344,113 +235,70 @@ try {
         new Date().toISOString();
 
     return res.status(503).json({
-
         success: false,
-
         project: project,
-
         message:
             "Could not connect to Wan2.1 worker.",
-
         error:
             error.message
-
     });
-
 }
 ```
 
 });
 
-/* =========================
-PROJECT LIST
-========================= */
-
 app.get(
 "/api/projects",
 function (req, res) {
-
-```
-    res.json({
-
-        success: true,
-
-        count:
-            projects.length,
-
-        projects:
-            projects
-
-    });
-
+res.json({
+success: true,
+count: projects.length,
+projects: projects
+});
 }
-```
-
 );
-
-/* =========================
-GET ONE PROJECT
-========================= */
 
 app.get(
 "/api/projects/:id",
 function (req, res) {
+const projectId =
+req.params.id;
 
 ```
-    const projectId =
-        req.params.id;
-
     const project =
         projects.find(
             function (item) {
-
                 return (
                     item.id ===
                     projectId
                 );
-
             }
         );
 
     if (!project) {
-
         return res.status(404).json({
-
             success: false,
-
             message:
                 "Project not found."
-
         });
-
     }
 
     res.json({
-
         success: true,
-
-        project:
-            project
-
+        project: project
     });
-
 }
 ```
 
 );
 
-/* =========================
-UPDATE PROJECT STATUS
-========================= */
-
 app.post(
 "/api/projects/:id/status",
 function (req, res) {
+const projectId =
+req.params.id;
 
 ```
-    const projectId =
-        req.params.id;
-
     const status =
         req.body.status;
 
@@ -463,109 +311,72 @@ function (req, res) {
     const project =
         projects.find(
             function (item) {
-
                 return (
                     item.id ===
                     projectId
                 );
-
             }
         );
 
     if (!project) {
-
         return res.status(404).json({
-
             success: false,
-
             message:
                 "Project not found."
-
         });
-
     }
 
     if (status) {
-
         project.status =
             status;
-
     }
 
-    if (
-        progress !==
-        undefined
-    ) {
-
+    if (progress !== undefined) {
         project.progress =
             Number(progress);
-
     }
 
     if (message) {
-
         project.message =
             message;
-
     }
 
     project.updatedAt =
         new Date().toISOString();
 
     res.json({
-
         success: true,
-
-        project:
-            project
-
+        project: project
     });
-
 }
 ```
 
 );
 
-/* =========================
-START SERVER
-========================= */
-
 app.listen(
 PORT,
 function () {
-
-```
-    console.log("");
-
-    console.log(
-        "================================"
-    );
-
-    console.log(
-        "AI VIDEO GENERATOR BACKEND"
-    );
-
-    console.log(
-        "================================"
-    );
-
-    console.log(
-        "Server running on port " +
-        PORT
-    );
-
-    console.log(
-        "Wan2.1 Worker: " +
-        WORKER_URL
-    );
-
-    console.log(
-        "================================"
-    );
-
-    console.log("");
-
+console.log("");
+console.log(
+"================================"
+);
+console.log(
+"AI VIDEO GENERATOR BACKEND"
+);
+console.log(
+"================================"
+);
+console.log(
+"Server running on port " +
+PORT
+);
+console.log(
+"Wan2.1 Worker: " +
+WORKER_URL
+);
+console.log(
+"================================"
+);
+console.log("");
 }
-```
-
 );

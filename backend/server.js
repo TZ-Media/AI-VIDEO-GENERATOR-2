@@ -1,4 +1,3 @@
-```javascript
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -10,20 +9,13 @@ const PORT = process.env.PORT || 3000;
 // ============================================================
 // KAGGLE WAN2.1 WORKER
 // ============================================================
-//
-// IMPORTANT:
-// Set WORKER_URL in Render environment variables.
-//
-// Example:
-// WORKER_URL=https://your-current-kaggle-tunnel.trycloudflare.com
-//
-// We do NOT permanently put the temporary Cloudflare URL here.
-// ============================================================
 
 const WORKER_URL = process.env.WORKER_URL;
 
-if (!WORKER_URL) {
-    console.warn("WARNING: WORKER_URL is not configured.");
+if (WORKER_URL) {
+console.log("Kaggle worker URL configured.");
+} else {
+console.warn("WARNING: WORKER_URL is not configured.");
 }
 
 // ============================================================
@@ -45,9 +37,9 @@ app.use(express.json());
 // ============================================================
 
 app.use(
-    express.static(
-        path.join(__dirname, "..", "frontend")
-    )
+express.static(
+path.join(__dirname, "..", "frontend")
+)
 );
 
 // ============================================================
@@ -56,283 +48,200 @@ app.use(
 
 app.get("/api/health", (req, res) => {
 
-    res.json({
-        success: true,
-        message: "AI Video Generator API is running!",
-        workerConfigured: !!WORKER_URL
-    });
+```
+res.json({
+    success: true,
+    message: "AI Video Generator API is running!",
+    workerConfigured: !!WORKER_URL
+});
+```
 
 });
 
 // ============================================================
-// WORKER HEALTH CHECK
+// KAGGLE WORKER HEALTH CHECK
 // ============================================================
 
 app.get("/api/worker-health", async (req, res) => {
 
-    if (!WORKER_URL) {
+```
+if (!WORKER_URL) {
+
+    return res.status(503).json({
+        success: false,
+        message: "WORKER_URL is not configured."
+    });
+
+}
+
+try {
+
+    const response = await fetch(
+        `${WORKER_URL}/health`
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
 
         return res.status(503).json({
             success: false,
-            message: "WORKER_URL is not configured."
-        });
-
-    }
-
-    try {
-
-        const response = await fetch(
-            `${WORKER_URL}/health`
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-
-            return res.status(503).json({
-                success: false,
-                message: "Kaggle Wan2.1 worker returned an error.",
-                worker: data
-            });
-
-        }
-
-        res.json({
-            success: true,
+            message: "Kaggle worker returned an error.",
             worker: data
         });
 
-    } catch (error) {
-
-        console.error(
-            "Worker health error:",
-            error.message
-        );
-
-        res.status(503).json({
-            success: false,
-            message: "Kaggle Wan2.1 worker is not reachable.",
-            error: error.message
-        });
-
     }
+
+    res.json({
+        success: true,
+        worker: data
+    });
+
+} catch (error) {
+
+    console.error(
+        "Worker health error:",
+        error.message
+    );
+
+    res.status(503).json({
+        success: false,
+        message: "Kaggle Wan2.1 worker is not reachable.",
+        error: error.message
+    });
+
+}
+```
 
 });
 
 // ============================================================
-// CREATE VIDEO JOB
+// CREATE VIDEO GENERATION JOB
 // ============================================================
 
 app.post("/api/generate", async (req, res) => {
 
-    const {
-        prompt,
-        videoType,
-        duration,
-        voiceLanguage,
-        clipLength
-    } = req.body;
+```
+const {
+    prompt,
+    videoType,
+    duration,
+    voiceLanguage,
+    clipLength
+} = req.body;
 
-    // --------------------------------------------------------
-    // CHECK PROMPT
-    // --------------------------------------------------------
+// --------------------------------------------------------
+// CHECK PROMPT
+// --------------------------------------------------------
 
-    if (!prompt || !prompt.trim()) {
+if (!prompt || !prompt.trim()) {
 
-        return res.status(400).json({
-            success: false,
-            message: "Video prompt is required."
-        });
+    return res.status(400).json({
+        success: false,
+        message: "Video prompt is required."
+    });
 
-    }
+}
 
-    // --------------------------------------------------------
-    // CHECK WORKER
-    // --------------------------------------------------------
+// --------------------------------------------------------
+// CHECK WORKER
+// --------------------------------------------------------
 
-    if (!WORKER_URL) {
+if (!WORKER_URL) {
 
-        return res.status(503).json({
-            success: false,
-            message: "Kaggle worker is not configured."
-        });
+    return res.status(503).json({
+        success: false,
+        message: "Kaggle worker is not configured."
+    });
 
-    }
+}
 
-    // --------------------------------------------------------
-    // CREATE PROJECT
-    // --------------------------------------------------------
+// --------------------------------------------------------
+// CREATE PROJECT
+// --------------------------------------------------------
 
-    const project = {
+const project = {
 
-        id:
-            "video_" +
-            Date.now(),
+    id: "video_" + Date.now(),
 
-        prompt:
-            prompt.trim(),
+    prompt: prompt.trim(),
 
-        videoType:
-            videoType || "short",
+    videoType: videoType || "short",
 
-        duration:
-            duration || 5,
+    duration: duration || 5,
 
-        voiceLanguage:
-            voiceLanguage || "english",
+    voiceLanguage: voiceLanguage || "english",
 
-        clipLength:
-            clipLength || 8,
+    clipLength: clipLength || 8,
 
-        status:
-            "starting",
+    status: "starting",
 
-        progress:
-            0,
+    progress: 0,
 
-        message:
-            "Sending request to Kaggle Wan2.1...",
+    message: "Sending request to Kaggle Wan2.1...",
 
-        createdAt:
-            new Date().toISOString()
+    createdAt: new Date().toISOString()
 
-    };
+};
 
-    projects.push(project);
+projects.push(project);
 
-    console.log("");
-    console.log("================================");
-    console.log("NEW VIDEO GENERATION REQUEST");
-    console.log("================================");
-    console.log("Project ID:", project.id);
-    console.log("Prompt:", project.prompt);
-    console.log("Video type:", project.videoType);
-    console.log("Duration:", project.duration);
-    console.log("Voice:", project.voiceLanguage);
-    console.log("Clip length:", project.clipLength);
-    console.log("================================");
-    console.log("");
+console.log("");
+console.log("================================");
+console.log("NEW VIDEO GENERATION REQUEST");
+console.log("================================");
+console.log("Project ID:", project.id);
+console.log("Prompt:", project.prompt);
+console.log("Video type:", project.videoType);
+console.log("Duration:", project.duration);
+console.log("Voice:", project.voiceLanguage);
+console.log("Clip length:", project.clipLength);
+console.log("================================");
+console.log("");
 
-    // --------------------------------------------------------
-    // SEND JOB TO KAGGLE
-    // --------------------------------------------------------
+// --------------------------------------------------------
+// SEND JOB TO KAGGLE
+// --------------------------------------------------------
 
-    try {
+try {
 
-        const workerResponse = await fetch(
-            `${WORKER_URL}/generate`,
-            {
-                method: "POST",
+    const workerResponse = await fetch(
+        `${WORKER_URL}/generate`,
+        {
+            method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+            headers: {
+                "Content-Type": "application/json"
+            },
 
-                body: JSON.stringify({
-
-                    prompt:
-                        project.prompt
-
-                })
-            }
-        );
-
-        const workerData =
-            await workerResponse.json();
-
-        console.log(
-            "Kaggle response:",
-            workerData
-        );
-
-        // ----------------------------------------------------
-        // WORKER ERROR
-        // ----------------------------------------------------
-
-        if (!workerResponse.ok) {
-
-            project.status = "failed";
-
-            project.progress = 0;
-
-            project.message =
-                workerData.error ||
-                workerData.message ||
-                "Kaggle Wan2.1 rejected the request.";
-
-            project.updatedAt =
-                new Date().toISOString();
-
-            return res.status(502).json({
-
-                success: false,
-
-                project:
-
-                    project,
-
-                message:
-                    project.message
-
-            });
-
+            body: JSON.stringify({
+                prompt: project.prompt
+            })
         }
+    );
 
-        // ----------------------------------------------------
-        // JOB ACCEPTED
-        // ----------------------------------------------------
+    const workerData =
+        await workerResponse.json();
 
-        if (workerData.job_id) {
+    console.log(
+        "Kaggle response:",
+        workerData
+    );
 
-            project.workerJobId =
-                workerData.job_id;
+    // ----------------------------------------------------
+    // WORKER ERROR
+    // ----------------------------------------------------
 
-            project.status =
-                workerData.status ||
-                "generating";
+    if (!workerResponse.ok) {
 
-            project.progress =
-                10;
+        project.status = "failed";
 
-            project.message =
-                "Kaggle Wan2.1 is generating the video...";
-
-            project.statusUrl =
-                `${WORKER_URL}/status/${workerData.job_id}`;
-
-            project.workerVideoUrl =
-                `${WORKER_URL}/video/${workerData.job_id}`;
-
-            project.updatedAt =
-                new Date().toISOString();
-
-            return res.status(202).json({
-
-                success: true,
-
-                message:
-                    "Video generation started.",
-
-                project:
-
-                    project
-
-            });
-
-        }
-
-        // ----------------------------------------------------
-        // UNEXPECTED RESPONSE
-        // ----------------------------------------------------
-
-        project.status =
-            "failed";
-
-        project.progress =
-            0;
+        project.progress = 0;
 
         project.message =
-            "Kaggle returned an unexpected response.";
+            workerData.error ||
+            workerData.message ||
+            "Kaggle Wan2.1 rejected the request.";
 
         project.updatedAt =
             new Date().toISOString();
@@ -341,319 +250,303 @@ app.post("/api/generate", async (req, res) => {
 
             success: false,
 
-            project:
+            project: project,
 
-                project,
+            message: project.message
 
-            worker:
-                workerData,
+        });
+
+    }
+
+    // ----------------------------------------------------
+    // JOB ACCEPTED
+    // ----------------------------------------------------
+
+    if (workerData.job_id) {
+
+        project.workerJobId =
+            workerData.job_id;
+
+        project.status =
+            workerData.status || "generating";
+
+        project.progress = 10;
+
+        project.message =
+            "Kaggle Wan2.1 is generating the video...";
+
+        project.statusUrl =
+            `${WORKER_URL}/status/${workerData.job_id}`;
+
+        project.workerVideoUrl =
+            `${WORKER_URL}/video/${workerData.job_id}`;
+
+        project.updatedAt =
+            new Date().toISOString();
+
+        return res.status(202).json({
+
+            success: true,
 
             message:
-                project.message
+                "Video generation started.",
+
+            project: project
+
+        });
+
+    }
+
+    // ----------------------------------------------------
+    // UNEXPECTED WORKER RESPONSE
+    // ----------------------------------------------------
+
+    project.status = "failed";
+
+    project.progress = 0;
+
+    project.message =
+        "Kaggle returned an unexpected response.";
+
+    project.updatedAt =
+        new Date().toISOString();
+
+    return res.status(502).json({
+
+        success: false,
+
+        project: project,
+
+        worker: workerData,
+
+        message: project.message
+
+    });
+
+} catch (error) {
+
+    console.error(
+        "Kaggle connection error:",
+        error.message
+    );
+
+    project.status = "failed";
+
+    project.progress = 0;
+
+    project.message =
+        "Could not connect to Kaggle Wan2.1.";
+
+    project.updatedAt =
+        new Date().toISOString();
+
+    return res.status(503).json({
+
+        success: false,
+
+        project: project,
+
+        message: project.message,
+
+        error: error.message
+
+    });
+
+}
+```
+
+});
+
+// ============================================================
+// CHECK PROJECT / KAGGLE JOB STATUS
+// ============================================================
+
+app.get(
+"/api/projects/:id/status",
+async (req, res) => {
+
+```
+    const projectId =
+        req.params.id;
+
+    const project =
+        projects.find(
+            item => item.id === projectId
+        );
+
+    if (!project) {
+
+        return res.status(404).json({
+
+            success: false,
+
+            message: "Project not found."
+
+        });
+
+    }
+
+    // ----------------------------------------------------
+    // NO WORKER JOB YET
+    // ----------------------------------------------------
+
+    if (!project.workerJobId) {
+
+        return res.json({
+
+            success: true,
+
+            project: project
+
+        });
+
+    }
+
+    // ----------------------------------------------------
+    // CHECK KAGGLE
+    // ----------------------------------------------------
+
+    try {
+
+        const response =
+            await fetch(
+                `${WORKER_URL}/status/${project.workerJobId}`
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            project.status = "failed";
+
+            project.message =
+                data.error ||
+                data.message ||
+                "Kaggle status request failed.";
+
+            project.updatedAt =
+                new Date().toISOString();
+
+            return res.status(502).json({
+
+                success: false,
+
+                project: project,
+
+                worker: data
+
+            });
+
+        }
+
+        // ------------------------------------------------
+        // UPDATE STATUS
+        // ------------------------------------------------
+
+        if (data.status) {
+
+            project.status =
+                data.status;
+
+        }
+
+        // ------------------------------------------------
+        // GENERATING
+        // ------------------------------------------------
+
+        if (
+            data.status === "generating"
+        ) {
+
+            project.progress =
+                project.progress < 20
+                    ? 20
+                    : project.progress;
+
+            project.message =
+                "Wan2.1 is generating the video...";
+
+        }
+
+        // ------------------------------------------------
+        // COMPLETED
+        // ------------------------------------------------
+
+        if (
+            data.status === "completed"
+        ) {
+
+            project.status =
+                "completed";
+
+            project.progress =
+                100;
+
+            project.message =
+                "Video generated successfully.";
+
+            project.videoUrl =
+                `${WORKER_URL}/video/${project.workerJobId}`;
+
+            project.workerVideoUrl =
+                project.videoUrl;
+
+            project.updatedAt =
+                new Date().toISOString();
+
+        }
+
+        // ------------------------------------------------
+        // FAILED
+        // ------------------------------------------------
+
+        if (
+            data.status === "failed"
+        ) {
+
+            project.status =
+                "failed";
+
+            project.progress =
+                0;
+
+            project.message =
+                data.error ||
+                data.message ||
+                "Wan2.1 generation failed.";
+
+            project.updatedAt =
+                new Date().toISOString();
+
+        }
+
+        return res.json({
+
+            success: true,
+
+            project: project,
+
+            worker: data
 
         });
 
     } catch (error) {
 
         console.error(
-            "Kaggle connection error:",
+            "Status check error:",
             error.message
         );
-
-        project.status =
-            "failed";
-
-        project.progress =
-            0;
-
-        project.message =
-            "Could not connect to Kaggle Wan2.1.";
-
-        project.updatedAt =
-            new Date().toISOString();
 
         return res.status(503).json({
 
             success: false,
 
-            project:
-
-                project,
-
             message:
-                project.message,
+                "Could not contact Kaggle worker.",
 
             error:
-                error.message
-
-        });
-
-    }
-
-});
-
-// ============================================================
-// CHECK KAGGLE JOB STATUS
-// ============================================================
-
-app.get(
-    "/api/projects/:id/status",
-    async (req, res) => {
-
-        const projectId =
-            req.params.id;
-
-        const project =
-            projects.find(
-                item =>
-                    item.id === projectId
-            );
-
-        if (!project) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Project not found."
-
-            });
-
-        }
-
-        // If there is no worker job yet
-        if (!project.workerJobId) {
-
-            return res.json({
-
-                success: true,
-
-                project:
-
-                    project
-
-            });
-
-        }
-
-        try {
-
-            const response =
-                await fetch(
-                    `${WORKER_URL}/status/${project.workerJobId}`
-                );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-
-                project.status =
-                    "failed";
-
-                project.message =
-                    data.error ||
-                    data.message ||
-                    "Kaggle status request failed.";
-
-                project.updatedAt =
-                    new Date().toISOString();
-
-                return res.status(502).json({
-
-                    success: false,
-
-                    project:
-
-                        project,
-
-                    worker:
-                        data
-
-                });
-
-            }
-
-            // ------------------------------------------------
-            // UPDATE PROJECT FROM WORKER
-            // ------------------------------------------------
-
-            if (data.status) {
-
-                project.status =
-                    data.status;
-
-            }
-
-            // ------------------------------------------------
-            // GENERATING
-            // ------------------------------------------------
-
-            if (
-                data.status === "generating"
-            ) {
-
-                project.progress =
-                    project.progress < 20
-                        ? 20
-                        : project.progress;
-
-                project.message =
-                    "Wan2.1 is generating the video...";
-
-            }
-
-            // ------------------------------------------------
-            // COMPLETED
-            // ------------------------------------------------
-
-            if (
-                data.status === "completed"
-            ) {
-
-                project.status =
-                    "completed";
-
-                project.progress =
-                    100;
-
-                project.message =
-                    "Video generated successfully.";
-
-                project.videoUrl =
-                    `${WORKER_URL}/video/${project.workerJobId}`;
-
-                project.workerVideoUrl =
-                    project.videoUrl;
-
-                project.updatedAt =
-                    new Date().toISOString();
-
-            }
-
-            // ------------------------------------------------
-            // FAILED
-            // ------------------------------------------------
-
-            if (
-                data.status === "failed"
-            ) {
-
-                project.status =
-                    "failed";
-
-                project.progress =
-                    0;
-
-                project.message =
-                    data.error ||
-                    data.message ||
-                    "Wan2.1 generation failed.";
-
-                project.updatedAt =
-                    new Date().toISOString();
-
-            }
-
-            return res.json({
-
-                success: true,
-
-                project:
-
-                    project,
-
-                worker:
-
-                    data
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "Status check error:",
-                error.message
-            );
-
-            return res.status(503).json({
-
-                success: false,
-
-                message:
-                    "Could not contact Kaggle worker.",
-
-                error:
-                    error.message,
-
-                project:
-
-                    project
-
-            });
-
-        }
-
-    }
-);
-
-// ============================================================
-// GET ALL PROJECTS
-// ============================================================
-
-app.get(
-    "/api/projects",
-    (req, res) => {
-
-        res.json({
-
-            success: true,
-
-            count:
-                projects.length,
-
-            projects:
-                projects
-
-        });
-
-    }
-);
-
-// ============================================================
-// GET ONE PROJECT
-// ============================================================
-
-app.get(
-    "/api/projects/:id",
-    (req, res) => {
-
-        const projectId =
-            req.params.id;
-
-        const project =
-            projects.find(
-                item =>
-                    item.id === projectId
-            );
-
-        if (!project) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Project not found."
-
-            });
-
-        }
-
-        res.json({
-
-            success: true,
+                error.message,
 
             project:
                 project
@@ -661,6 +554,80 @@ app.get(
         });
 
     }
+
+}
+```
+
+);
+
+// ============================================================
+// GET ALL PROJECTS
+// ============================================================
+
+app.get(
+"/api/projects",
+(req, res) => {
+
+```
+    res.json({
+
+        success: true,
+
+        count:
+            projects.length,
+
+        projects:
+            projects
+
+    });
+
+}
+```
+
+);
+
+// ============================================================
+// GET ONE PROJECT
+// ============================================================
+
+app.get(
+"/api/projects/:id",
+(req, res) => {
+
+```
+    const projectId =
+        req.params.id;
+
+    const project =
+        projects.find(
+            item => item.id === projectId
+        );
+
+    if (!project) {
+
+        return res.status(404).json({
+
+            success: false,
+
+            message:
+                "Project not found."
+
+        });
+
+    }
+
+    res.json({
+
+        success: true,
+
+        project:
+            project
+
+    });
+
+}
+```
+
 );
 
 // ============================================================
@@ -669,14 +636,16 @@ app.get(
 
 app.get("/", (req, res) => {
 
-    res.sendFile(
-        path.join(
-            __dirname,
-            "..",
-            "frontend",
-            "index.html"
-        )
-    );
+```
+res.sendFile(
+    path.join(
+        __dirname,
+        "..",
+        "frontend",
+        "index.html"
+    )
+);
+```
 
 });
 
@@ -685,26 +654,28 @@ app.get("/", (req, res) => {
 // ============================================================
 
 app.listen(
-    PORT,
-    () => {
+PORT,
+() => {
 
-        console.log("");
-        console.log("================================");
-        console.log("AI VIDEO GENERATOR BACKEND");
-        console.log("================================");
-
-        console.log(
-            `Server running on port ${PORT}`
-        );
-
-        console.log(
-            "Kaggle worker configured:",
-            !!WORKER_URL
-        );
-
-        console.log("================================");
-        console.log("");
-
-    }
-);
 ```
+    console.log("");
+    console.log("================================");
+    console.log("AI VIDEO GENERATOR BACKEND");
+    console.log("================================");
+
+    console.log(
+        `Server running on port ${PORT}`
+    );
+
+    console.log(
+        "Kaggle worker configured:",
+        !!WORKER_URL
+    );
+
+    console.log("================================");
+    console.log("");
+
+}
+```
+
+);

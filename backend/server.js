@@ -1,4 +1,5 @@
-﻿const express = require("express");
+```javascript
+const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
@@ -6,18 +7,35 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Python AI Worker
-const WORKER_URL =
-    process.env.WORKER_URL || "http://localhost:8000";
+// ============================================================
+// WAN2.1 KAGGLE WORKER
+// ============================================================
 
-// Store video projects in memory
+const WORKER_URL =
+    process.env.WORKER_URL ||
+    "https://submitted-oops-nitrogen-alliance.trycloudflare.com";
+
+
+// ============================================================
+// PROJECT STORAGE
+// ============================================================
+
 const projects = [];
 
-// Middleware
+
+// ============================================================
+// MIDDLEWARE
+// ============================================================
+
 app.use(express.json());
+
 app.use(cors());
 
-// Serve frontend
+
+// ============================================================
+// FRONTEND
+// ============================================================
+
 app.use(
     express.static(
         path.join(__dirname, "..", "frontend")
@@ -25,9 +43,9 @@ app.use(
 );
 
 
-// ========================================
+// ============================================================
 // HEALTH CHECK
-// ========================================
+// ============================================================
 
 app.get("/api/health", (req, res) => {
 
@@ -46,9 +64,9 @@ app.get("/api/health", (req, res) => {
 });
 
 
-// ========================================
-// WORKER HEALTH CHECK
-// ========================================
+// ============================================================
+// WAN2.1 WORKER HEALTH CHECK
+// ============================================================
 
 app.get("/api/worker-health", async (req, res) => {
 
@@ -62,11 +80,30 @@ app.get("/api/worker-health", async (req, res) => {
         const data =
             await response.json();
 
+
+        if (!response.ok) {
+
+            return res.status(503).json({
+
+                success: false,
+
+                message:
+                    "Wan2.1 worker returned an error.",
+
+                worker:
+                    data
+
+            });
+
+        }
+
+
         res.json({
 
             success: true,
 
-            worker: data
+            worker:
+                data
 
         });
 
@@ -77,12 +114,13 @@ app.get("/api/worker-health", async (req, res) => {
             error.message
         );
 
+
         res.status(503).json({
 
             success: false,
 
             message:
-                "AI worker is not reachable.",
+                "Wan2.1 worker is not reachable.",
 
             error:
                 error.message
@@ -94,9 +132,9 @@ app.get("/api/worker-health", async (req, res) => {
 });
 
 
-// ========================================
-// CREATE VIDEO PROJECT
-// ========================================
+// ============================================================
+// CREATE VIDEO
+// ============================================================
 
 app.post("/api/generate", async (req, res) => {
 
@@ -115,7 +153,10 @@ app.post("/api/generate", async (req, res) => {
     } = req.body;
 
 
-    // Check prompt
+    // --------------------------------------------------------
+    // CHECK PROMPT
+    // --------------------------------------------------------
+
     if (
         !prompt ||
         !prompt.trim()
@@ -133,7 +174,10 @@ app.post("/api/generate", async (req, res) => {
     }
 
 
-    // Create project
+    // --------------------------------------------------------
+    // CREATE PROJECT
+    // --------------------------------------------------------
+
     const project = {
 
         id:
@@ -156,13 +200,13 @@ app.post("/api/generate", async (req, res) => {
             clipLength || 5,
 
         status:
-            "queued",
+            "generating",
 
         progress:
-            0,
+            10,
 
         message:
-            "Sending job to AI worker...",
+            "Sending prompt to Wan2.1...",
 
         createdAt:
             new Date().toISOString()
@@ -170,59 +214,73 @@ app.post("/api/generate", async (req, res) => {
     };
 
 
-    // Save project
     projects.push(project);
 
 
     console.log("");
-    console.log(
-        "================================"
-    );
-    console.log(
-        "New video generation request"
-    );
-    console.log(
-        "================================"
-    );
+    console.log("================================");
+    console.log("NEW VIDEO GENERATION REQUEST");
+    console.log("================================");
+
     console.log(
         "Project ID:",
         project.id
     );
+
     console.log(
         "Prompt:",
         project.prompt
     );
+
     console.log(
         "Video type:",
         project.videoType
     );
+
     console.log(
         "Duration:",
         project.duration
     );
+
     console.log(
         "Voice:",
         project.voiceLanguage
     );
+
     console.log(
         "Clip length:",
         project.clipLength
     );
+
     console.log(
-        "================================"
+        "Worker:",
+        WORKER_URL
     );
+
+    console.log("================================");
     console.log("");
 
 
     try {
 
-        // Send job to Python worker
+        // ----------------------------------------------------
+        // SEND PROMPT TO KAGGLE WAN2.1
+        // ----------------------------------------------------
+
+        project.message =
+            "Wan2.1 is generating the video...";
+
+        project.progress =
+            20;
+
+
         const workerResponse =
             await fetch(
                 `${WORKER_URL}/generate`,
                 {
 
-                    method: "POST",
+                    method:
+                        "POST",
 
                     headers: {
 
@@ -235,19 +293,7 @@ app.post("/api/generate", async (req, res) => {
                         JSON.stringify({
 
                             prompt:
-                                project.prompt,
-
-                            videoType:
-                                project.videoType,
-
-                            duration:
-                                project.duration,
-
-                            voiceLanguage:
-                                project.voiceLanguage,
-
-                            clipLength:
-                                project.clipLength
+                                project.prompt
 
                         })
 
@@ -255,11 +301,24 @@ app.post("/api/generate", async (req, res) => {
             );
 
 
+        // ----------------------------------------------------
+        // READ WORKER RESPONSE
+        // ----------------------------------------------------
+
         const workerData =
             await workerResponse.json();
 
 
-        // Worker returned an error
+        console.log(
+            "Wan2.1 response:",
+            workerData
+        );
+
+
+        // ----------------------------------------------------
+        // WORKER ERROR
+        // ----------------------------------------------------
+
         if (!workerResponse.ok) {
 
             project.status =
@@ -269,8 +328,9 @@ app.post("/api/generate", async (req, res) => {
                 0;
 
             project.message =
+                workerData.error ||
                 workerData.message ||
-                "AI worker rejected the job.";
+                "Wan2.1 generation failed.";
 
             project.updatedAt =
                 new Date().toISOString();
@@ -280,7 +340,8 @@ app.post("/api/generate", async (req, res) => {
 
                 success: false,
 
-                project: project,
+                project:
+                    project,
 
                 message:
                     project.message
@@ -290,53 +351,118 @@ app.post("/api/generate", async (req, res) => {
         }
 
 
-        // Worker accepted job
+        // ----------------------------------------------------
+        // GENERATION COMPLETED
+        // ----------------------------------------------------
+
         if (
-            workerData.success
+            workerData.status ===
+            "completed"
         ) {
 
-            project.workerJobId =
-                workerData.job.id;
-
             project.status =
-                workerData.job.status ||
-                "queued";
+                "completed";
 
             project.progress =
-                0;
+                100;
 
             project.message =
-                "AI worker accepted the video job.";
+                "Video generated successfully.";
+
+            project.filename =
+                workerData.filename;
+
+            project.workerVideoUrl =
+                `${WORKER_URL}${workerData.video_url}`;
+
+            project.videoUrl =
+                project.workerVideoUrl;
 
             project.updatedAt =
                 new Date().toISOString();
 
+
+            console.log("");
+            console.log(
+                "VIDEO GENERATION COMPLETED"
+            );
+
+            console.log(
+                "Project:",
+                project.id
+            );
+
+            console.log(
+                "Video:",
+                project.videoUrl
+            );
+
+            console.log("");
+
+
+            return res.json({
+
+                success: true,
+
+                project:
+                    project,
+
+                video: {
+
+                    filename:
+                        workerData.filename,
+
+                    url:
+                        project.videoUrl
+
+                }
+
+            });
+
         }
 
 
-        console.log(
-            "Worker response:",
-            workerData
-        );
+        // ----------------------------------------------------
+        // UNKNOWN WORKER RESPONSE
+        // ----------------------------------------------------
+
+        project.status =
+            "failed";
+
+        project.progress =
+            0;
+
+        project.message =
+            "Wan2.1 returned an unexpected response.";
+
+        project.updatedAt =
+            new Date().toISOString();
 
 
-        // Return project
-        res.json({
+        return res.status(500).json({
 
-            success: true,
+            success: false,
 
-            project: project,
+            project:
+                project,
 
             worker:
-                workerData.job
+                workerData,
+
+            message:
+                project.message
 
         });
 
 
     } catch (error) {
 
+        // ----------------------------------------------------
+        // CONNECTION ERROR
+        // ----------------------------------------------------
+
         console.error(
-            "Error connecting to AI worker:",
+            "Wan2.1 connection error:",
             error.message
         );
 
@@ -348,20 +474,21 @@ app.post("/api/generate", async (req, res) => {
             0;
 
         project.message =
-            "Could not connect to AI worker.";
+            "Could not connect to Wan2.1.";
 
         project.updatedAt =
             new Date().toISOString();
 
 
-        res.status(503).json({
+        return res.status(503).json({
 
             success: false,
 
-            project: project,
+            project:
+                project,
 
             message:
-                "AI worker is not reachable.",
+                "Could not connect to Wan2.1 worker.",
 
             error:
                 error.message
@@ -373,9 +500,9 @@ app.post("/api/generate", async (req, res) => {
 });
 
 
-// ========================================
+// ============================================================
 // GET ALL PROJECTS
-// ========================================
+// ============================================================
 
 app.get(
     "/api/projects",
@@ -397,9 +524,9 @@ app.get(
 );
 
 
-// ========================================
+// ============================================================
 // GET ONE PROJECT
-// ========================================
+// ============================================================
 
 app.get(
     "/api/projects/:id",
@@ -449,9 +576,9 @@ app.get(
 );
 
 
-// ========================================
+// ============================================================
 // MANUAL STATUS UPDATE
-// ========================================
+// ============================================================
 
 app.post(
     "/api/projects/:id/status",
@@ -529,12 +656,6 @@ app.post(
             new Date().toISOString();
 
 
-        console.log(
-            "Manual project update:",
-            project
-        );
-
-
         res.json({
 
             success: true,
@@ -548,9 +669,9 @@ app.post(
 );
 
 
-// ========================================
+// ============================================================
 // START SERVER
-// ========================================
+// ============================================================
 
 app.listen(
     PORT,
@@ -560,22 +681,29 @@ app.listen(
         console.log(
             "================================"
         );
+
         console.log(
             "AI VIDEO GENERATOR BACKEND"
         );
+
         console.log(
             "================================"
         );
+
         console.log(
             `Server running on port ${PORT}`
         );
+
         console.log(
-            `AI Worker: ${WORKER_URL}`
+            `Wan2.1 Worker: ${WORKER_URL}`
         );
+
         console.log(
             "================================"
         );
+
         console.log("");
 
     }
 );
+```

@@ -39,13 +39,17 @@ app.get("/api/worker-health", async (req, res) => {
             });
         }
 
-        const response = await fetch(WORKER_URL + "/health");
+        const response = await fetch(
+            WORKER_URL + "/health"
+        );
 
         const data = await response.json();
 
         res.json(data);
 
     } catch (error) {
+        console.error("Worker health error:", error);
+
         res.status(500).json({
             status: "error",
             message: "Could not connect to Kaggle worker",
@@ -91,7 +95,7 @@ app.post("/api/generate", async (req, res) => {
 
         projects.push(project);
 
-        // Safe test settings for the current Wan2.1 worker.
+        // Current safe Wan2.1 test settings.
         const workerRequest = {
             prompt: prompt,
             width: 320,
@@ -99,6 +103,9 @@ app.post("/api/generate", async (req, res) => {
             frames: 17,
             seed: 42
         };
+
+        console.log("Sending request to Kaggle worker...");
+        console.log("Worker URL:", WORKER_URL);
 
         const workerResponse = await fetch(
             WORKER_URL + "/generate",
@@ -117,6 +124,11 @@ app.post("/api/generate", async (req, res) => {
 
             project.status = "failed";
 
+            console.error(
+                "Worker returned error:",
+                errorText
+            );
+
             return res.status(500).json({
                 error: "Kaggle worker rejected the request",
                 details: errorText
@@ -124,6 +136,8 @@ app.post("/api/generate", async (req, res) => {
         }
 
         const workerData = await workerResponse.json();
+
+        console.log("Worker response:", workerData);
 
         project.workerJobId =
             workerData.job_id ||
@@ -141,7 +155,10 @@ app.post("/api/generate", async (req, res) => {
 
     } catch (error) {
 
-        console.error("Generate error:", error);
+        console.error(
+            "Generate error:",
+            error
+        );
 
         res.status(500).json({
             error: "Video generation failed",
@@ -173,7 +190,8 @@ app.get("/api/projects/:id/status", async (req, res) => {
             return res.json({
                 projectId: project.id,
                 status: project.status,
-                progress: project.progress
+                progress: project.progress,
+                videoUrl: project.videoUrl
             });
         }
 
@@ -192,29 +210,34 @@ app.get("/api/projects/:id/status", async (req, res) => {
 
         const workerData = await workerResponse.json();
 
+        console.log(
+            "Worker status:",
+            workerData
+        );
+
         const workerStatus = workerData.status;
 
         if (workerStatus === "queued") {
+
             project.status = "queued";
             project.progress = 5;
-        }
 
-        else if (workerStatus === "loading_model") {
+        } else if (workerStatus === "loading_model") {
+
             project.status = "loading_model";
             project.progress = 15;
-        }
 
-        else if (workerStatus === "generating") {
+        } else if (workerStatus === "generating") {
+
             project.status = "generating";
             project.progress = 60;
-        }
 
-        else if (workerStatus === "encoding") {
+        } else if (workerStatus === "encoding") {
+
             project.status = "encoding";
             project.progress = 90;
-        }
 
-        else if (workerStatus === "completed") {
+        } else if (workerStatus === "completed") {
 
             project.status = "completed";
             project.progress = 100;
@@ -223,9 +246,8 @@ app.get("/api/projects/:id/status", async (req, res) => {
                 WORKER_URL +
                 "/video/" +
                 project.workerJobId;
-        }
 
-        else if (workerStatus === "failed") {
+        } else if (workerStatus === "failed") {
 
             project.status = "failed";
             project.progress = 0;
@@ -242,7 +264,10 @@ app.get("/api/projects/:id/status", async (req, res) => {
 
     } catch (error) {
 
-        console.error("Status error:", error);
+        console.error(
+            "Status error:",
+            error
+        );
 
         res.status(500).json({
             error: "Could not check project status",
@@ -253,7 +278,7 @@ app.get("/api/projects/:id/status", async (req, res) => {
 
 
 // ============================================================
-// GET PROJECT
+// GET SINGLE PROJECT
 // ============================================================
 
 app.get("/api/projects/:id", (req, res) => {
@@ -291,17 +316,23 @@ const frontendPath = path.join(
     "../frontend"
 );
 
-app.use(express.static(frontendPath));
+app.use(
+    express.static(frontendPath)
+);
 
 
 // ============================================================
 // FRONTEND FALLBACK
+// Express 5 compatible
 // ============================================================
 
-app.get("*", (req, res) => {
+app.use((req, res) => {
 
     res.sendFile(
-        path.join(frontendPath, "index.html")
+        path.join(
+            frontendPath,
+            "index.html"
+        )
     );
 });
 
@@ -320,4 +351,5 @@ app.listen(PORT, () => {
         "Worker URL:",
         WORKER_URL || "NOT CONFIGURED"
     );
+
 });
